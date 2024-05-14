@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "333203348891",
+    "project_id": "udacity-location-reminde-f3941",
+    "storage_bucket": "udacity-location-reminde-f3941.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:333203348891:android:198990b5bcd8c67cc5153e",
+        "android_client_info": {
+          "package_name": "com.udacity.project4"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGpWRebyNrM-eroAxx5WmjDh5Z11vXi8E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
