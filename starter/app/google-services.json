@@ -1,41 +1,41 @@
 {
   "project_info": {
-    "project_number": "333203348891",
-    "project_id": "udacity-location-reminde-f3941",
-    "storage_bucket": "udacity-location-reminde-f3941.appspot.com"
+    "project_number": "1061181272628",
+    "project_id": "udacity-location-reminde-102f7",
+    "storage_bucket": "udacity-location-reminde-102f7.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:333203348891:android:198990b5bcd8c67cc5153e",
+        "mobilesdk_app_id": "1:1061181272628:android:7dd9bdeae18da1570f9061",
         "android_client_info": {
           "package_name": "com.udacity.project4"
         }
       },
       "oauth_client": [
         {
-          "client_id": "333203348891-ptmivf55il9fn958en4aakt4fttimo9a.apps.googleusercontent.com",
+          "client_id": "1061181272628-e0fhcdg4na6btrmph4ackle80ta83gvc.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.udacity.project4",
-            "certificate_hash": "7900ee4643abd3716fd538ba4efd32d91d68c5b9"
+            "certificate_hash": "a53349bad8a9e3707fceee02e00bee80e5307e29"
           }
         },
         {
-          "client_id": "333203348891-bfsh46memg0go93h7i83n78vjs10kilu.apps.googleusercontent.com",
+          "client_id": "1061181272628-cbra1atlvdu5g3j8e68hacb4087qhev7.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCGpWRebyNrM-eroAxx5WmjDh5Z11vXi8E"
+          "current_key": "AIzaSyDnTGpSnb6KLoQ7ZxnQZE1aky2jJvJdCPM"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "333203348891-bfsh46memg0go93h7i83n78vjs10kilu.apps.googleusercontent.com",
+              "client_id": "1061181272628-cbra1atlvdu5g3j8e68hacb4087qhev7.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
