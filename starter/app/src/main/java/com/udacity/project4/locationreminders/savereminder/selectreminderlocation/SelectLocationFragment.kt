@@ -2,7 +2,10 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.content.res.Resources
+import android.location.Location
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -12,16 +15,21 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.fragment.findNavController
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.tasks.CancellationToken
+import com.google.android.gms.tasks.CancellationTokenSource
+import com.google.android.gms.tasks.OnTokenCanceledListener
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
@@ -39,6 +47,12 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     private var mMap: GoogleMap? = null
     private var selectMarker: Marker? = null
+
+    companion object {
+        const val TAG = "SelectLocationFragment"
+
+        val DEFAULT_LOCATION = LatLng(-34.0, 151.0) // Sydney
+    }
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -75,11 +89,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
         (childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment).getMapAsync(this)
 
-        // TODO: zoom to the user location after taking his permission
-        // TODO: add style to the map
-        // TODO: put a marker to location that the user selected
-
-        // TODO: call this function after the user confirms on the selected location
         binding.buttonSelectLocation.setOnClickListener{
             onLocationSelected()
         }
@@ -125,16 +134,32 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
-        // Add a marker in Sydney and move the camera
-        val sydney = LatLng(-34.0, 151.0)
-
         mMap?.let {
             it.setMapLongClick()
             it.setPoiClick()
-            it.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
-            it.moveCamera(CameraUpdateFactory.newLatLng(sydney))
+            it.setMapStyle()
             enableMyLocation()
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun moveCameraToCurrentLocation()  {
+        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
+
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, object : CancellationToken() {
+            override fun onCanceledRequested(p0: OnTokenCanceledListener) = CancellationTokenSource().token
+
+            override fun isCancellationRequested() = false
+        })
+            .addOnSuccessListener { location: Location? ->
+                if (location != null) {
+                    mMap?.moveCameraToLocation(LatLng(location.latitude, location.longitude), 13f)
+                }
+            }
+    }
+
+    private fun GoogleMap.moveCameraToLocation(latLng: LatLng, zoom: Float = 10f) {
+        moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
     }
 
     private fun GoogleMap.setMapLongClick() {
@@ -165,6 +190,25 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         }
     }
 
+    private fun GoogleMap.setMapStyle() {
+        try {
+            // Customize the styling of the base map using a JSON object defined
+            // in a raw resource file.
+            val success = setMapStyle(
+                MapStyleOptions.loadRawResourceStyle(
+                    requireContext(),
+                    R.raw.map_style
+                )
+            )
+
+            if (!success) {
+                Log.e(TAG, "Style parsing failed.")
+            }
+        } catch (e: Resources.NotFoundException) {
+            Log.e(TAG, "Can't find style. Error: ", e)
+        }
+    }
+
     private fun getSnippetFromLatLng(latLng: LatLng): String {
         return String.format(
             Locale.getDefault(),
@@ -178,12 +222,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         binding.buttonSelectLocation.isEnabled = selectMarker != null
     }
 
-    private fun isPermissionGranted() : Boolean {
-        return ContextCompat.checkSelfPermission(
-            requireContext(),
-            android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-    }
-
     private fun enableMyLocation() {
         if (ActivityCompat.checkSelfPermission(
                 requireContext(),
@@ -195,6 +233,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         ) {
             mMap?.isMyLocationEnabled = true
             mMap?.uiSettings?.isMyLocationButtonEnabled = true
+            moveCameraToCurrentLocation()
             return
         } else {
             requestPermissionLauncher.launch(
