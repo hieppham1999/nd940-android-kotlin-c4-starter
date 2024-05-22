@@ -56,7 +56,7 @@ class SaveReminderFragment : BaseFragment() {
                 requireContext(),
                 0,
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
         } else {
             PendingIntent.getBroadcast(
@@ -130,9 +130,9 @@ class SaveReminderFragment : BaseFragment() {
 
             reminderItem = ReminderDataItem(title, description, location, latitude, longitude)
 
-
-            // TODO: use the user entered reminder details to:
-            //  1) add a geofencing request
+            if (!_viewModel.validateEnteredData(reminderItem)) {
+                return@setOnClickListener
+            }
 
             if (foregroundAndBackgroundLocationPermissionApproved()) {
                 checkDeviceLocationSettingsAndStartGeofence()

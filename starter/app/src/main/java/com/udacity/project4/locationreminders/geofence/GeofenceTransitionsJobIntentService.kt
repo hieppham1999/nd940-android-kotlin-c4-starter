@@ -37,7 +37,8 @@ class GeofenceTransitionsJobIntentService : JobIntentService(), CoroutineScope {
         val geofencingEvent = GeofencingEvent.fromIntent(intent)
         geofencingEvent?.let {
             if (it.hasError()) {
-                Log.e("onHandleWork", getGeofenceErrorMessage(this, it.errorCode))
+                Log.d("onHandleWork", getGeofenceErrorMessage(this, it.errorCode))
+                return
             }
             if (it.geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) {
                 // Get the geofences that were triggered.
