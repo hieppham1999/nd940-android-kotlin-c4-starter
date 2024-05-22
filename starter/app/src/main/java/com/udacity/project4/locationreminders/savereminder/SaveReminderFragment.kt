@@ -3,6 +3,7 @@ package com.udacity.project4.locationreminders.savereminder
 import android.annotation.TargetApi
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -15,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
+import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
@@ -41,8 +43,9 @@ class SaveReminderFragment : BaseFragment() {
     private lateinit var reminderItem: ReminderDataItem
 
     companion object {
-        const val DefaultLocationRequestIntervalMillis = 5000L
+        const val DEFAULT_LOCATION_REQUEST_INTERVAL_MILLIS = 2000L
         const val TAG = "SaveReminderFragment"
+        const val REQUEST_TURN_DEVICE_LOCATION_ON = 29
         const val GEOFENCE_RADIUS_IN_METERS = 100F
     }
 
@@ -85,6 +88,8 @@ class SaveReminderFragment : BaseFragment() {
             Log.d(TAG, "requestNotificationPermission: $isGranted")
             if (isGranted) {
                 Log.d(TAG, "requestNotificationPermission: $isGranted")
+                // add the geofence
+                requestNotificationPermissionAndCreteGeofence()
             } else {
                 Snackbar.make(
                     binding.root, R.string.notification_permission_not_granted, Snackbar.LENGTH_LONG
@@ -157,8 +162,9 @@ class SaveReminderFragment : BaseFragment() {
         _viewModel.onClear()
     }
 
-    private fun checkDeviceLocationSettingsAndStartGeofence() {
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_LOW_POWER, DefaultLocationRequestIntervalMillis).build()
+    private fun checkDeviceLocationSettingsAndStartGeofence(resolve: Boolean = true) {
+        val locationRequest =
+            LocationRequest.Builder(Priority.PRIORITY_LOW_POWER, DEFAULT_LOCATION_REQUEST_INTERVAL_MILLIS).build()
         val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
         val settingsClient = LocationServices.getSettingsClient(requireActivity())
         val locationSettingsResponseTask = settingsClient.checkLocationSettings(builder.build())
@@ -167,19 +173,31 @@ class SaveReminderFragment : BaseFragment() {
         locationSettingsResponseTask.addOnSuccessListener {
             Log.d(TAG, "locationSettingsResponseTask: successful")
             // request the notification permission
-            requestNotificationPermission()
-            // add the geofence
-            createGeofenceAndSaveReminder()
+            requestNotificationPermissionAndCreteGeofence()
+
         }
 
         // Failure
         locationSettingsResponseTask.addOnFailureListener { exception ->
             Log.d(TAG, "locationSettingsResponseTask: ${exception.message}")
-            Snackbar.make(
-                requireView(), R.string.location_required_error, Snackbar.LENGTH_LONG
-            ).setAction(android.R.string.ok) {
-                checkDeviceLocationSettingsAndStartGeofence()
-            }.show()
+
+            if (exception is ResolvableApiException && resolve) {
+                try {
+                    startIntentSenderForResult(
+                        exception.resolution.intentSender, REQUEST_TURN_DEVICE_LOCATION_ON,
+                        null, 0, 0, 0, null
+                    )
+
+                } catch (sendEx: IntentSender.SendIntentException) {
+                    Log.d(TAG, "Error getting location settings resolution: " + sendEx.message)
+                }
+
+                Snackbar.make(
+                    requireView(), R.string.location_required_error, Snackbar.LENGTH_LONG
+                ).setAction(android.R.string.ok) {
+                    checkDeviceLocationSettingsAndStartGeofence()
+                }.show()
+            }
         }
     }
 
@@ -202,17 +220,25 @@ class SaveReminderFragment : BaseFragment() {
     }
 
 
-    private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    private fun requestNotificationPermissionAndCreteGeofence() {
+        val isNotificationPermissionApproved = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     requireContext(), android.Manifest.permission.POST_NOTIFICATIONS
                 ) == PackageManager.PERMISSION_GRANTED
             ) {
                 Log.d(TAG, "notificationPermissionApproved: GRANTED")
+                true
+
             } else {
                 Log.d(TAG, "notificationPermissionApproved: NOT GRANTED")
                 requestNotificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                false
             }
+        } else {
+            true
+        }
+        if (isNotificationPermissionApproved) {
+            createGeofenceAndSaveReminder()
         }
     }
 
