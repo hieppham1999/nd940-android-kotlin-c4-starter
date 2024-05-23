@@ -1,5 +1,6 @@
 package com.udacity.project4.locationreminders.data.local
 
+import com.udacity.project4.MESSAGE_REMINDER_NOT_FOUND
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result
@@ -51,7 +52,7 @@ class RemindersLocalRepository(
             if (reminder != null) {
                 return@withContext Result.Success(reminder)
             } else {
-                return@withContext Result.Error("Reminder not found!")
+                return@withContext Result.Error(MESSAGE_REMINDER_NOT_FOUND)
             }
         } catch (e: Exception) {
             return@withContext Result.Error(e.localizedMessage)

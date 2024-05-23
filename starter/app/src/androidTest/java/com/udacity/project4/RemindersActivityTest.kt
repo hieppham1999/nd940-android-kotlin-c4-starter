@@ -1,30 +1,44 @@
 package com.udacity.project4
 
 import android.app.Application
+import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.action.ViewActions
+import androidx.test.espresso.action.ViewActions.closeSoftKeyboard
+import androidx.test.espresso.action.ViewActions.typeText
+import androidx.test.espresso.assertion.ViewAssertions
+import androidx.test.espresso.matcher.ViewMatchers
+import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import com.udacity.project4.locationreminders.RemindersActivity
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.local.LocalDB
 import com.udacity.project4.locationreminders.data.local.RemindersLocalRepository
 import com.udacity.project4.locationreminders.reminderslist.RemindersListViewModel
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
+import com.udacity.project4.util.DataBindingIdlingResource
+import com.udacity.project4.util.monitorActivity
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
-import org.koin.test.AutoCloseKoinTest
+import org.koin.test.KoinTest
 import org.koin.test.get
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 //END TO END test to black box test the app
 class RemindersActivityTest :
-    AutoCloseKoinTest() {// Extended Koin Test - embed autoclose @after method to close Koin after every test
+    KoinTest {// Extended Koin Test - embed autoclose @after method to close Koin after every test
 
+    private val dataBindingIdlingResource = DataBindingIdlingResource()
     private lateinit var repository: ReminderDataSource
     private lateinit var appContext: Application
 
@@ -49,7 +63,7 @@ class RemindersActivityTest :
                     get() as ReminderDataSource
                 )
             }
-            single { RemindersLocalRepository(get()) as ReminderDataSource }
+            single { RemindersLocalRepository(get()) as ReminderDataSource}
             single { LocalDB.createRemindersDao(appContext) }
         }
         //declare a new koin module
@@ -65,7 +79,41 @@ class RemindersActivityTest :
         }
     }
 
+    @Test
+    fun onFabClick() = runBlocking {
+        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        dataBindingIdlingResource.monitorActivity(activityScenario)
 
-//    TODO: add End to End testing to the app
+        onView(withId(R.id.addReminderFAB)).perform(ViewActions.click())
+        onView(withId(R.id.reminderTitle)).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+        onView(withId(R.id.reminderDescription)).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+        onView(withId(R.id.selectLocation)).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
 
+        activityScenario.close()
+    }
+
+    @ExperimentalCoroutinesApi
+    @Test
+    fun showErrorToast_whenNoTitleInput() = runBlocking {
+        val remindersActivityActivityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        dataBindingIdlingResource.monitorActivity(remindersActivityActivityScenario)
+
+        onView(withId(R.id.addReminderFAB)).perform(ViewActions.click())
+        onView(withId(R.id.saveReminder)).perform(ViewActions.click())
+        onView(ViewMatchers.withText("Please enter title")).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+
+        remindersActivityActivityScenario.close()
+    }
+
+    @Test
+    fun showErrorToast_whenNoLocationInput() = runBlocking {
+        val activityActivityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        dataBindingIdlingResource.monitorActivity(activityActivityScenario)
+        onView(withId(R.id.addReminderFAB)).perform(ViewActions.click())
+        onView(withId(R.id.reminderTitle)).perform(typeText("Title"), closeSoftKeyboard())
+        onView(withId(R.id.saveReminder)).perform(ViewActions.click())
+        onView(ViewMatchers.withText("Please select location"))
+            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+        activityActivityScenario.close()
+    }
 }
