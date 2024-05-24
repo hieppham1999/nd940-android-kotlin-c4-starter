@@ -32,6 +32,7 @@ import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.get
 
+
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 //END TO END test to black box test the app
@@ -94,7 +95,7 @@ class RemindersActivityTest :
 
     @ExperimentalCoroutinesApi
     @Test
-    fun showErrorToast_whenNoTitleInput() = runBlocking {
+    fun showSnackBar_whenNoTitleInput() = runBlocking {
         val remindersActivityActivityScenario = ActivityScenario.launch(RemindersActivity::class.java)
         dataBindingIdlingResource.monitorActivity(remindersActivityActivityScenario)
 
@@ -106,7 +107,7 @@ class RemindersActivityTest :
     }
 
     @Test
-    fun showErrorToast_whenNoLocationInput() = runBlocking {
+    fun showSnackBar_whenNoLocationInput() = runBlocking {
         val activityActivityScenario = ActivityScenario.launch(RemindersActivity::class.java)
         dataBindingIdlingResource.monitorActivity(activityActivityScenario)
         onView(withId(R.id.addReminderFAB)).perform(ViewActions.click())
@@ -114,6 +115,20 @@ class RemindersActivityTest :
         onView(withId(R.id.saveReminder)).perform(ViewActions.click())
         onView(ViewMatchers.withText("Please select location"))
             .check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+        activityActivityScenario.close()
+    }
+
+    @Test
+    fun showToast_whenNoLocationInput() = runBlocking {
+        val activityActivityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        dataBindingIdlingResource.monitorActivity(activityActivityScenario)
+        onView(withId(R.id.addReminderFAB)).perform(ViewActions.click())
+        onView(withId(R.id.reminderTitle)).perform(typeText("Title"), closeSoftKeyboard())
+        onView(withId(R.id.saveReminder)).perform(ViewActions.click())
+        onView(ViewMatchers.withText("Please select location"))
+            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+
+
         activityActivityScenario.close()
     }
 }
