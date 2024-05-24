@@ -140,6 +140,16 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             it.setMapStyle()
             enableMyLocation()
         }
+
+        // add default location
+        selectMarker = mMap?.addMarker(
+            MarkerOptions()
+                .position(DEFAULT_LOCATION)
+                .title(getString(R.string.dropped_pin))
+                .snippet(getSnippetFromLatLng(DEFAULT_LOCATION))
+        )
+
+        updateSaveLocationButton()
     }
 
     @SuppressLint("MissingPermission")
