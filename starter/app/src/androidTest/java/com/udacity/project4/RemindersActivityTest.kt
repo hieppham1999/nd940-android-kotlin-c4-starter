@@ -1,15 +1,25 @@
 package com.udacity.project4
 
+import android.app.Activity
 import android.app.Application
+import android.view.View
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.PerformException
+import androidx.test.espresso.UiController
+import androidx.test.espresso.ViewAction
 import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.closeSoftKeyboard
 import androidx.test.espresso.action.ViewActions.typeText
-import androidx.test.espresso.assertion.ViewAssertions
-import androidx.test.espresso.matcher.ViewMatchers
+import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.RootMatchers.withDecorView
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.isRoot
 import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.espresso.matcher.ViewMatchers.withText
+import androidx.test.espresso.util.HumanReadables
+import androidx.test.espresso.util.TreeIterables
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.udacity.project4.locationreminders.RemindersActivity
@@ -22,6 +32,9 @@ import com.udacity.project4.util.DataBindingIdlingResource
 import com.udacity.project4.util.monitorActivity
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.CoreMatchers.not
+import org.hamcrest.Matcher
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,6 +44,8 @@ import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.get
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 
 @RunWith(AndroidJUnit4::class)
@@ -86,9 +101,9 @@ class RemindersActivityTest :
         dataBindingIdlingResource.monitorActivity(activityScenario)
 
         onView(withId(R.id.addReminderFAB)).perform(ViewActions.click())
-        onView(withId(R.id.reminderTitle)).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
-        onView(withId(R.id.reminderDescription)).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
-        onView(withId(R.id.selectLocation)).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+        onView(withId(R.id.reminderTitle)).check(matches(isDisplayed()))
+        onView(withId(R.id.reminderDescription)).check(matches(isDisplayed()))
+        onView(withId(R.id.selectLocation)).check(matches(isDisplayed()))
 
         activityScenario.close()
     }
@@ -96,39 +111,100 @@ class RemindersActivityTest :
     @ExperimentalCoroutinesApi
     @Test
     fun showSnackBar_whenNoTitleInput() = runBlocking {
-        val remindersActivityActivityScenario = ActivityScenario.launch(RemindersActivity::class.java)
-        dataBindingIdlingResource.monitorActivity(remindersActivityActivityScenario)
+        val remindersActivityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        dataBindingIdlingResource.monitorActivity(remindersActivityScenario)
 
         onView(withId(R.id.addReminderFAB)).perform(ViewActions.click())
         onView(withId(R.id.saveReminder)).perform(ViewActions.click())
-        onView(ViewMatchers.withText("Please enter title")).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+        onView(withText("Please enter title")).check(matches(isDisplayed()))
 
-        remindersActivityActivityScenario.close()
+        remindersActivityScenario.close()
     }
 
     @Test
     fun showSnackBar_whenNoLocationInput() = runBlocking {
-        val activityActivityScenario = ActivityScenario.launch(RemindersActivity::class.java)
-        dataBindingIdlingResource.monitorActivity(activityActivityScenario)
+        val reminderActivityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        dataBindingIdlingResource.monitorActivity(reminderActivityScenario)
         onView(withId(R.id.addReminderFAB)).perform(ViewActions.click())
         onView(withId(R.id.reminderTitle)).perform(typeText("Title"), closeSoftKeyboard())
         onView(withId(R.id.saveReminder)).perform(ViewActions.click())
-        onView(ViewMatchers.withText("Please select location"))
-            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
-        activityActivityScenario.close()
+        onView(withText("Please select location"))
+            .check(matches(isDisplayed()))
+        reminderActivityScenario.close()
     }
 
     @Test
-    fun showToast_whenNoLocationInput() = runBlocking {
+    fun showToast_whenLocationInput() = runBlocking {
         val activityActivityScenario = ActivityScenario.launch(RemindersActivity::class.java)
         dataBindingIdlingResource.monitorActivity(activityActivityScenario)
         onView(withId(R.id.addReminderFAB)).perform(ViewActions.click())
         onView(withId(R.id.reminderTitle)).perform(typeText("Title"), closeSoftKeyboard())
-        onView(withId(R.id.saveReminder)).perform(ViewActions.click())
-        onView(ViewMatchers.withText("Please select location"))
-            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+        onView(withId(R.id.selectLocation)).perform(ViewActions.click())
 
+        // we need to wait for a while until the map is loaded
+        onView(isRoot()).perform(waitId(R.id.button_select_location, TimeUnit.SECONDS.toMillis(5)))
+
+        onView(withId(R.id.button_select_location)).perform(ViewActions.click())
+
+        onView(withId(R.id.saveReminder)).perform(ViewActions.click())
+
+        onView(withText(R.string.reminder_saved)).inRoot(
+            withDecorView(
+                not(
+                    `is`(
+                        getActivity(activityActivityScenario)?.window?.decorView
+                    )
+                )
+
+            )
+        ).check(matches(isDisplayed()))
 
         activityActivityScenario.close()
+    }
+
+    private fun getActivity(activityScenario: ActivityScenario<RemindersActivity>): Activity? {
+        var activityInstance: Activity? = null
+        activityScenario.onActivity {
+            activityInstance = it
+        }
+        return activityInstance
+    }
+
+
+    // Refer to:
+    // https://stackoverflow.com/questions/21417954/thread-sleep-with-espresso
+    private fun waitId(viewId: Int, millis: Long): ViewAction {
+        return object : ViewAction {
+            override fun getConstraints(): Matcher<View> {
+                return isRoot()
+            }
+
+            override fun getDescription(): String {
+                return "wait for a specific view with id <$viewId> during $millis millis."
+            }
+
+            override fun perform(uiController: UiController, view: View?) {
+                uiController.loopMainThreadUntilIdle()
+                val startTime = System.currentTimeMillis()
+                val endTime = startTime + millis
+                val viewMatcher: Matcher<View> = withId(viewId)
+                do {
+                    for (child in TreeIterables.breadthFirstViewTraversal(view)) {
+                        // found view with required ID
+                        if (viewMatcher.matches(child)) {
+                            return
+                        }
+                    }
+                    uiController.loopMainThreadForAtLeast(50)
+                } while (System.currentTimeMillis() < endTime)
+
+                // timeout happens
+                throw PerformException.Builder()
+                    .withActionDescription(this.description)
+                    .withViewDescription(HumanReadables.describe(view))
+                    .withCause(TimeoutException())
+                    .build()
+            }
+        }
     }
 }
