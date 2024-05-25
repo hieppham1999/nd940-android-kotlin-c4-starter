@@ -12,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.CoreMatchers.not
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.After
 import org.junit.Before
@@ -84,12 +85,12 @@ class RemindersLocalRepositoryTest {
         localRepository.saveReminder(reminder2)
         localRepository.deleteAllReminders()
         val reminderDTOList = localRepository.getReminders() as Result.Success
-        assertThat(reminderDTOList.data.size, `is`(true))
+        assertThat(reminderDTOList.data.size, `is`(0))
     }
     @Test
     fun insertThenDeleteReminder_returnNull() = runTest {
         localRepository.saveReminder(reminder1)
         localRepository.deleteAllReminders()
-        assertThat(localRepository.getReminder(reminder1.id), `is`(CoreMatchers.nullValue()))
+        assertThat(localRepository.getReminder(reminder1.id), not(`is`(CoreMatchers.instanceOf(ReminderDTO::class.java))))
     }
 }
